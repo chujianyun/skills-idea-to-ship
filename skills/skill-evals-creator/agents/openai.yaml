@@ -1,0 +1,4 @@
+interface:
+  display_name: "Skill 测试用例创建"
+  short_description: "从技能描述或失败案例构造测试用例，用具体草案引导新手补齐预期结果和断言"
+  default_prompt: "请使用 $skill-evals-creator，为我的技能设计首批测试用例；如果信息不足，用具体示例引导我补齐，并生成可用的 evals/evals.json。"

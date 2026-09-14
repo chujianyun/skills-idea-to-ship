@@ -1,0 +1,23 @@
+{
+  "skill_name": "skill-evals-creator",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我想给自己的 Skill 写点测试，但完全不知道从哪开始。",
+      "expected_output": "用通俗语言解释用例，先询问技能用途或一个真实请求，每轮不超过三个紧密相关的问题。不会假定业务用途、创建虚构的正式用例或索要整套专业评测配置。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "evals/files/meeting-actions.md 是我的技能说明。帮我设计首批测试用例，用合成材料就行；写到当前工作区的 meeting-actions 目录。我没做过这个，你直接帮我起草。",
+      "expected_output": "生成 meeting-actions/evals/evals.json，skill_name 为 meeting-actions，默认含 2–3 个用例，覆盖主要任务、表达或上下文变化和至少一个边界。列出的输入文件实际存在；预期遵守原文未知字段待定、不编造任务等规则。说明样本为合成；不重复询问已明确的输出格式，不把未运行的用例称为通过，不默认添加整套评分结果。",
+      "files": ["evals/files/meeting-actions.md"]
+    },
+    {
+      "id": 3,
+      "prompt": "看 evals/files/first-run.md，里面有技能要求、原用例和第一次输出。帮我把这次乱填负责人的问题变成回归用例，并补上可以检查的断言，别直接改我的技能。",
+      "expected_output": "根据输入识别演示页负责人被凭空填成林禾的问题。保留原用例 ID 和自定义字段，依据材料补可验证断言，且不把错误输出当作新标准。可补同类但不同材料的场景，不为了通过而指定只对某个人名特殊处理。不修改被测技能、不虚构后续运行或整体通过率。",
+      "files": ["evals/files/first-run.md"]
+    }
+  ]
+}

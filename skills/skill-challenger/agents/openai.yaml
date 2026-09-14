@@ -1,0 +1,6 @@
+interface:
+  display_name: "Skill 挑战：创建前澄清"
+  short_description: "创建技能前澄清目标、输入输出和边界，用红黄绿灯判断是否可以开始创建"
+  default_prompt: "请使用 $skill-challenger 澄清我要创建的技能，给出红黄绿灯；没有红灯或我明确要求强制继续后，再进入创建。"
+policy:
+  allow_implicit_invocation: true
