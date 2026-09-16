@@ -1,0 +1,16 @@
+{
+  "target": "meeting-actions",
+  "format_contract": "cases 是用例列表；key 是用例 ID；request 是用户请求；checks 是对象式断言，rule 为判定条件，severity 为该条件的重要性；这些字段由自定义执行器使用。本次仅检查已提供记录且所有字段明确的正常路径。",
+  "cases": [
+    {
+      "key": "normal-a",
+      "request": "会议记录：林禾周五提交访谈稿；陈安周一更新演示页。帮我提取行动项。",
+      "checks": [
+        {"rule": "输出 Markdown 表格，列为事项、负责人、截止时间。", "severity": "required"},
+        {"rule": "仅含提交访谈稿（林禾，周五）、更新演示页（陈安，周一）两项。", "severity": "required"},
+        {"rule": "行序必须是演示页、访谈稿，其他顺序判失败。", "severity": "required"}
+      ],
+      "custom_metadata": {"owner": "synthetic-team", "purpose": "normal-path"}
+    }
+  ]
+}

@@ -1,18 +1,19 @@
 # Skills Idea to Ship
 
-从一句话想法开始，澄清 Skill 的用途与边界，再为写好的技能设计测试、执行评测、审查优化。本仓库提供四个可以独立使用、也可以配合使用的技能。
+从一句话想法开始，澄清 Skill 的用途与边界，再为写好的技能设计测试、审查用例、执行评测、审查优化。本仓库提供五个可以独立使用、也可以配合使用的技能。
 
 | 技能 | 什么时候用 | 主要交付 |
 |---|---|---|
 | [`skill-challenger`](skills/skill-challenger/SKILL.md) | 想创建新技能，但用途、输入输出或验收还不明确 | 红黄绿灯、准入状态和创建需求简报 |
 | [`skill-evals-creator`](skills/skill-evals-creator/SKILL.md) | 不知道该测什么，或需要补充回归用例 | `evals/evals.json`、输入样本、预期结果和按需补充的断言 |
+| [`skill-evals-reviewer`](skills/skill-evals-reviewer/SKILL.md) | 已有用例，需要检查是否对应、重复或漏测 | 覆盖矩阵、逐例处置、问题证据和最小补测建议 |
 | [`skill-evals-executor`](skills/skill-evals-executor/SKILL.md) | 已有用例，需要实际运行或比较版本 | 真实产物、评分证据、运行记录和评测报告 |
 | [`skill-optimizer`](skills/skill-optimizer/SKILL.md) | 已有技能存在误触发、冗余规则、执行停顿或结构问题 | 审查结论、修改方案，以及获授权后的修改与验证 |
 
 ## 如何配合使用
 
 ```text
-新建：技能想法 → skill-challenger → 技能编写 → skill-evals-creator → skill-evals-executor
+新建：技能想法 → skill-challenger → 技能编写 → skill-evals-creator → skill-evals-reviewer → skill-evals-executor
 迭代：评测反馈 → skill-evals-creator 补充用例 → skill-optimizer 修改技能 → skill-evals-executor 重跑
 ```
 
@@ -28,6 +29,7 @@
 mkdir -p ~/.agents/skills
 cp -R skills/skill-challenger ~/.agents/skills/
 cp -R skills/skill-evals-creator ~/.agents/skills/
+cp -R skills/skill-evals-reviewer ~/.agents/skills/
 cp -R skills/skill-evals-executor ~/.agents/skills/
 cp -R skills/skill-optimizer ~/.agents/skills/
 ```
@@ -82,6 +84,16 @@ python3 skills/skill-evals-creator/scripts/validate_evals.py path/to/target-skil
 ```
 
 检查器只检查 JSON 结构、ID 和输入文件；不运行模型，也不判断输出质量。本技能自身的首批待运行用例见 [`evals/evals.json`](skills/skill-evals-creator/evals/evals.json)。
+
+## 审查测试用例
+
+```text
+使用 $skill-evals-reviewer，检查 /path/to/my-skill 的 evals 是否充分。哪些 Case 不对应、重复没必要，哪些重要场景没测到？先给报告，不改用例。
+```
+
+先从技能中提取可验证要求，再双向核对用例，检查输入能否触发分支、预期能否判定关键行为。区分真正重复与不同失败模式，也区分测试遗漏和技能规则本身没写清。默认保存 `evals/review-NN.md`，给出覆盖矩阵、逐例处置和按优先级排列的最小补改建议；不自动修改用例或执行评测。
+
+结论为“设计基本充分”“需要补改”或“证据不足”，仅针对测试设计和已读材料。自身的合成验收用例见 [`evals/evals.json`](skills/skill-evals-reviewer/evals/evals.json)，不代表已经运行通过。
 
 ## 执行技能评测
 
