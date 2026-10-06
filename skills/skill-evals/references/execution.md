@@ -1,18 +1,6 @@
----
-name: skill-evals-executor
-description: 执行已有的 Skill 测试用例，隔离运行候选技能与无技能或旧版基线，保存实际输出、断言证据和评测报告。用于“跑一下 evals”“执行技能测试”“重跑回归”“比较两个技能版本”；仅设计测试用例时不触发。
----
+# 实际执行与报告
 
-# Skill Evals Executor
-
-把已有用例跑成可追溯的结果。用户说“执行测试”时，要真正启动运行并检查产物；创建工作区、生成运行提示或检查 JSON 都只是准备，不能当作执行完成。
-
-## 分工与输入
-
-- 接收目标技能目录，以及默认位于其中的 `evals/evals.json`。可选：用例 ID、旧版技能目录、重复次数、运行预算和已有 iteration（继续收集结果）。
-- `skill-evals-creator`（若存在）负责设计用例，本技能消费其产物，不强依赖它安装。只有用例缺失或格式无法解释时，报告具体缺口；用户仅要求执行时不自行生成用例代替。
-- 默认使用官方字段：`skill_name`，以及 `evals` 中的 `id`、`prompt`、`expected_output`、`files`（可选）、`assertions`（可选字符串数组）。其他格式先阅读并显式映射，保留原件；对象式断言不能直接转成字符串丢掉语义。
-- 默认每例一次、候选技能对无技能基线；用户给了旧版则改为旧版基线。明确只跑候选时服从，报告没有对照。执行全部已有用例；预计成本明显超出用户范围时，先给出具体例数、组数和运行数供缩小范围。
+自审通过后读取；仅设计或仅审查模式不启动运行。接收目标技能目录、用例文件、本轮 ID、可选旧版和重复次数。默认每例一次、只跑候选；用户要求无技能对照时省略 `--candidate-only`，提供旧版则使用 `--baseline-skill`。脚本裸调用仍会准备无技能基线，默认流程必须显式传入 `--candidate-only`。规模超出明确预算时反馈实际运行数量，不偷偷缩小后称全量完成。
 
 ## 1. 准备本轮
 
@@ -21,12 +9,12 @@ description: 执行已有的 Skill 测试用例，隔离运行候选技能与无
 使用本技能目录下的脚本（仅依赖 Python 3 标准库）：
 
 ```bash
-python3 scripts/eval_workspace.py prepare --skill /path/to/target-skill
+python3 scripts/eval_workspace.py prepare --skill /path/to/target-skill --candidate-only
 python3 scripts/eval_workspace.py prepare --skill /path/to/target-skill --baseline-skill /path/to/old-skill --repeat 3
 python3 scripts/eval_workspace.py prepare --skill /path/to/target-skill --ids 1 3 --candidate-only
 ```
 
-相对的脚本路径应解析到本技能目录，而非目标技能目录。可用 `--evals` 指定其他用例文件，`--workspace` 指定存放工作区的位置。脚本创建递增 iteration、冻结技能及用例、为每次运行复制输入并生成 `task.json`；它**不会启动模型**。完整数据约定及继续执行方式见 [运行协议](references/run-protocol.md)。
+相对的脚本路径应解析到本技能目录，而非目标技能目录。可用 `--evals` 指定其他用例文件，`--workspace` 指定存放工作区的位置。脚本创建递增 iteration、冻结技能及用例、为每次运行复制输入并生成 `task.json`；它**不会启动模型**。完整数据约定及继续执行方式见 [运行协议](run-protocol.md)。
 
 ## 2. 实际执行
 
@@ -49,7 +37,7 @@ python3 scripts/eval_workspace.py prepare --skill /path/to/target-skill --ids 1 
 
 运行后读冻结的用例与实际文件，逐项检查。可以用代码判定的格式、数量、文件属性优先程序验证；内容和视觉判断须实际阅读/查看结果，证据写明相对文件路径、位置和观察事实。缺少应有产物是失败；工具故障导致无法检查则记未判定，不自动算通过。
 
-写入 `grading.json`：每个断言一条 `text`、`passed`（`true` / `false` / 无法判定时 `null`）、`evidence`。先读 [运行协议](references/run-protocol.md) 的评分规则。冻结的同一组断言同时用于两组；不要看完候选输出后悄悄修改本轮标准。
+写入 `grading.json`：每个断言一条 `text`、`passed`（`true` / `false` / 无法判定时 `null`）、`evidence`。先读 [运行协议](run-protocol.md) 的评分规则。冻结的同一组断言同时用于两组；不要看完候选输出后悄悄修改本轮标准。
 
 没有断言时仍执行并展示输出，标记“未做断言评分”，根据 `expected_output` 提出下一轮断言草案；不自动编造满分。若用户要求本轮补断言，保存版本化补充并对两组使用同一标准，标注为探索性评分。主观质量可额外盲评，但不能混入客观断言通过率。
 
@@ -63,10 +51,10 @@ python3 scripts/eval_workspace.py summarize /path/to/target-skill-workspace/iter
 
 向用户给出已执行/失败/阻断/待运行数量，配对通过率及差值（可计算时），关键失败证据、产物和报告路径。样本太少时明确仅为本轮观察，不宣称统计显著。收集逐例人工反馈到 `feedback.json`，未评审标为 `not_reviewed`；只有用户明确看过并认可才能记为通过。
 
-把失败归为输出缺陷、用例/断言问题、环境问题或待人工判断，提出最小下一步。不为了提升分数删除有价值的基础断言；可以单独标出两组都通过、无法区分技能收益的检查。改技能、改测试或自动反复优化需用户请求支持，交接给相应创建/优化流程。
+把失败归为输出缺陷、用例/断言问题、环境问题或待人工判断，提出最小下一步。不为了提升分数删除有价值的基础断言；可以单独标出两组都通过、无法区分技能收益的检查。发现问题后返回主文档的修复分流：明确的用例错误自动修复，业务歧义先确认，被测 Skill 或其实现修改先给计划并获确认。每批修改后重新自审，在新 iteration 重跑本轮范围内全部用例；旧失败、旧断言和旧输出保留。
 
 ## 参考与验证
 
 流程参考 [Agent Skills：Evaluating skill output quality](https://agentskills.io/skill-creation/evaluating-skills)。本包的运行状态、空值处理、可比性字段及脚本命令是本地实现约定，不是官方强制标准。
 
-维护时运行 `python3 -m unittest discover -s tests -v`（工作目录为本技能目录），并按 [行为验收场景](references/acceptance-cases.md) 验证代理的实际执行行为。脚本测试通过不代表模型评测已经运行。
+维护时运行 `python3 -m unittest discover -s tests -v`（工作目录为本技能目录），并按 [行为验收场景](acceptance-cases.md) 验证代理的实际执行行为。脚本测试通过不代表模型评测已经运行。

@@ -1,0 +1,23 @@
+{
+  "skill_name": "word-uppercase",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "apple",
+      "expected_output": "只输出 apple。",
+      "files": [],
+      "assertions": [
+        "只输出 apple"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "123",
+      "expected_output": "只输出 INVALID。",
+      "files": [],
+      "assertions": [
+        "只输出 INVALID"
+      ]
+    }
+  ]
+}

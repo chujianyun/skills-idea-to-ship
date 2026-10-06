@@ -1,0 +1,11 @@
+{
+  "skill_name": "deadline-picker",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "访谈稿周五交，后面又说周一交。",
+      "expected_output": "截止日期必须是周一。",
+      "files": []
+    }
+  ]
+}
