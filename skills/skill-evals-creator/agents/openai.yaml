@@ -1,4 +1,4 @@
 interface:
   display_name: "Skill 测试用例创建"
-  short_description: "从技能描述或失败案例构造测试用例，创建后自动执行一轮并交付测试报告"
-  default_prompt: "请使用 $skill-evals-creator，为我的技能设计首批测试用例；如果信息不足，用具体示例引导我补齐，生成可用的 evals/evals.json，随后自动执行一轮并给出测试报告；受阻时如实说明原因。"
+  short_description: "创建测试用例并审查覆盖情况，有缺口先确认补充方案，充分后自动测试并交付报告"
+  default_prompt: "请使用 $skill-evals-creator，为我的技能设计首批测试用例；如果信息不足，用具体示例引导我补齐，生成可用的 evals/evals.json，随后审查覆盖情况：有缺口时反馈问题并拟定补充方案，等我确认后补充并复审；覆盖基本充分则自动执行一轮并给出测试报告，受阻时如实说明原因。"

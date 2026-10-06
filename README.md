@@ -5,7 +5,7 @@
 | 技能 | 什么时候用 | 主要交付 |
 |---|---|---|
 | [`skill-challenger`](skills/skill-challenger/SKILL.md) | 想创建新技能，但用途、输入输出或验收还不明确 | 红黄绿灯、准入状态和创建需求简报 |
-| [`skill-evals-creator`](skills/skill-evals-creator/SKILL.md) | 不知道该测什么，或需要补充回归用例 | `evals/evals.json`、输入样本、预期结果、按需补充的断言和首轮测试报告 |
+| [`skill-evals-creator`](skills/skill-evals-creator/SKILL.md) | 不知道该测什么，或需要补充回归用例 | `evals/evals.json`、输入样本、预期结果、按需补充的断言、覆盖审查结论及通过审查后的首轮测试报告 |
 | [`skill-evals-reviewer`](skills/skill-evals-reviewer/SKILL.md) | 已有用例，需要检查是否对应、重复或漏测 | 覆盖矩阵、逐例处置、问题证据和最小补测建议 |
 | [`skill-evals-executor`](skills/skill-evals-executor/SKILL.md) | 已有用例，需要实际运行或比较版本 | 真实产物、评分证据、运行记录和评测报告 |
 | [`skill-optimizer`](skills/skill-optimizer/SKILL.md) | 已有技能存在误触发、冗余规则、执行停顿或结构问题 | 审查结论、修改方案，以及获授权后的修改与验证 |
@@ -19,7 +19,7 @@
 
 `skill-challenger` 负责需求澄清，实际编写由宿主可用的 `skill-creator` 等工具或技能编写流程完成。已有技能可以直接进入测试或优化，无需从头走一遍。
 
-评测发现问题后，可以把失败案例交给 `skill-evals-creator` 补成回归用例，再用 `skill-optimizer` 修订技能，最后重新执行评测。`skill-evals-creator` 默认在创建后执行一轮并交付报告；用户明确只要设计时跳过。其他上下游步骤按用户请求衔接。
+评测发现问题后，可以把失败案例交给 `skill-evals-creator` 补成回归用例，再用 `skill-optimizer` 修订技能，最后重新执行评测。`skill-evals-creator` 默认在创建后衔接覆盖审查：设计基本充分则自动测试一轮；有缺口则先反馈问题和补充方案，用户确认后补充、复审，通过后再测试。用户明确只要设计时跳过运行。其他上下游步骤按用户请求衔接。
 
 ## 安装
 
@@ -77,7 +77,7 @@ cp -R skills/skill-optimizer ~/.agents/skills/
 使用 $skill-evals-creator，把这次失败的输入和输出变成回归用例，补上可以验证的断言。
 ```
 
-默认先设计 2–3 个有意义的用例，覆盖代表任务、真实变化和相关边界；创建并检查后，自动执行本次新增或修改的就绪用例，每例一次、只跑候选技能，并交付测试报告。用户明确只要设计或不要运行时跳过；缺少环境、输入或权限时报告具体阻断原因，不把结构校验当作测试通过。附带的检查器可验证用例文件：
+默认先设计 2–3 个有意义的用例，覆盖代表任务、真实变化和相关边界；创建并检查后，先审查覆盖情况并交付覆盖矩阵。有缺口时自行梳理补充方案，向用户说明问题与拟补场景，确认后补充并复审；设计基本充分时，自动执行本轮审查范围内全部就绪用例，每例一次、只跑候选技能，并交付测试报告。用户明确只要设计或不要运行时跳过；缺少环境、输入或权限时报告具体阻断原因，不把结构校验当作测试通过。附带的检查器可验证用例文件：
 
 ```bash
 python3 skills/skill-evals-creator/scripts/validate_evals.py path/to/target-skill/evals/evals.json
