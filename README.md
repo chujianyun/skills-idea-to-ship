@@ -13,11 +13,14 @@
 ```text
 新建：技能想法 → skill-challenger → 技能编写 → skill-evals（创建 → 自审 → 执行 → 修复重跑）
 迭代：已有技能与用例 → skill-evals（自审 → 执行 → 问题分流 → 修改后重跑）
+优化：skill-optimizer（审查 → 方案 → 授权后修改）→ skill-evals 回归重跑
 ```
 
 `skill-challenger` 负责需求澄清，实际编写由宿主可用的 `skill-creator` 等工具或技能编写流程完成。已有技能可以直接进入测试或优化，无需从头走一遍。
 
 `skill-evals` 已合并原用例创建、审查和执行能力，原三个独立入口不再保留。创建后自行审查准确性与完整性，充分后自动执行；明确的用例错误或有依据的漏测自动修复，业务歧义先给具体建议并确认。需要修改被测 Skill 或其实现时，先给原因与计划，用户确认后实施。每批修改后重新自审并重跑，保留前后记录。只需整体优化技能时仍可单独使用 `skill-optimizer`。
+
+修改技能的边界：`skill-evals` 做的是测试驱动的定点修复——评测暴露具体失败用例后，定位到具体指令并修改，再用重跑验证。失败分流时，若根因不是单点错误，而是触发边界过宽、规则冗余或整体结构问题，转交 `skill-optimizer` 做整体审查与方案，不在用例上逐个打补丁。`skill-optimizer` 完成修改后，用 `skill-evals` 的既有用例回归重跑：静态审查不能证明行为没有退化。
 
 ## 安装
 
@@ -112,6 +115,10 @@ python3 -m unittest discover -s skills/skill-evals/tests -v
 ```
 
 只要求建议时，交付诊断和方案；已授权修改时，连续完成范围内的修改与验证。审查会同时检查缺失的保障和多余的约束，不为了精简而删除有效规则，也不为了显得完整而增加固定步骤。更多使用说明见 [`skill-optimizer/README.md`](skills/skill-optimizer/README.md)。
+
+## 进阶推荐
+
+如果想进一步进阶，推荐了解微软的 [SkillOpt](https://github.com/microsoft/skillopt)。
 
 ## 验证范围
 
