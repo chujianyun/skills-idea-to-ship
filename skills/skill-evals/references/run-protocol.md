@@ -6,7 +6,7 @@
 
 ```text
 evals.json                 冻结用例；仅协调者/评分者读取
-manifest.json              运行清单、快照哈希和断言
+manifest.json              运行清单、快照哈希、断言和可选评分方案
 snapshots/with_skill/      候选技能快照
 snapshots/old_skill/       可选旧版快照
 eval-1/with_skill/run-1/
@@ -80,8 +80,11 @@ feedback.json             真实人工评审后由协调者记录
 
 每条冻结断言按原顺序出现且只能出现一次。不采信自行填写的 summary，汇总器重新计数。`passed=null` 或无断言时不输出总体通过率；用已判定的少量结果充当满覆盖分数会误导比较。失败运行保留诊断但不拿部分产物计算成功率。
 
+可选质量评分的 scoring 与 score_results 字段见 [评分协议](scoring.md)。只有已确认的方案可进入 prepare；逐例冻结且不发给执行者。summarize 校验维度、证据及取值，独立计算 quality_score，不采信手填总分；无 scoring 的旧用例和旧 manifest 继续使用原断言逻辑。
+
 ## 汇总口径
 
+- 质量分单列：每例／配置／重复次数展示分项和总分，quality_scored 仅计完整有效质量分；缺判定总分为 null，不纳入断言通过率和 delta，也不跨方案平均。
 - 所有计划运行均计数。已完成但缺少评分的记入 ungraded；损坏 JSON 或结构错误进入 errors，不能默默跳过后宣布全量成功。
 - 每组展示可完整评分的断言 passed/total 和通过率；这只是该组可评分样本的描述，不能和另一组不同覆盖的分数直接相减。
 - delta 仅使用相同 case/repeat、两组 completed、断言完整、隔离 verified 且有证据、环境一致且无可比性限制的配对。先合计各组这些配对的 passed/total，再算候选减基线。报告配对数量。

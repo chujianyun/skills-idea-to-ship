@@ -5,6 +5,8 @@ import argparse
 import json
 from pathlib import Path
 
+from scoring import validate_scoring
+
 
 def nonempty_text(value):
     return isinstance(value, str) and bool(value.strip())
@@ -40,6 +42,8 @@ def validate(path, root):
         for field in ("prompt", "expected_output"):
             if not nonempty_text(case.get(field)):
                 errors.append(f"{label}: {field} must be nonempty text")
+        if "scoring" in case:
+            errors.extend(f"{label}: {error}" for error in validate_scoring(case["scoring"]))
         for field in ("files", "assertions"):
             if field not in case:
                 continue

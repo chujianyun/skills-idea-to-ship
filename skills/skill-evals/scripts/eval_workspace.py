@@ -10,6 +10,8 @@ import statistics
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from scoring import score_results, validate_scoring
+
 
 def read(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
@@ -27,6 +29,9 @@ def require(ok, message):
 def digest(root):
     h = hashlib.sha256()
     for path in sorted(root.rglob("*")):
+        # Match snapshot exclusions: executing helper scripts can create bytecode caches.
+        if any(part in (".git", "__pycache__") for part in path.relative_to(root).parts):
+            continue
         if path.is_file():
             h.update(str(path.relative_to(root)).encode() + b"\0")
             h.update(path.read_bytes())
@@ -70,6 +75,9 @@ def prepare(args):
         require(len(assertions) == len(set(assertions)), f"eval {cid}: duplicate assertions")
         if args.ids and cid not in args.ids:
             continue
+        if "scoring" in case:
+            errors = validate_scoring(case["scoring"], confirmed=True)
+            require(not errors, f"eval {cid}: {'; '.join(errors)}")
         files = case.get("files", [])
         require(isinstance(files, list), f"eval {cid}: files must be a list")
         resolved = []
@@ -124,7 +132,8 @@ def prepare(args):
                 write(run_dir / "task.json", task)
                 write(run_dir / "run.json", {"status": "pending", "environment": {}, "limitations": [], "error": None})
                 runs.append({"case_id": str(case["id"]), "config": config, "repeat": repetition,
-                             "path": relative, "assertions": case.get("assertions", [])})
+                             "path": relative, "assertions": case.get("assertions", []),
+                             "scoring": case.get("scoring")})
     write(iteration / "manifest.json", {"schema_version": 1, "skill_name": suite["skill_name"],
           "configs": list(configs), "snapshots": snapshots,
           "evals_sha256": hashlib.sha256((iteration / "evals.json").read_bytes()).hexdigest(), "runs": runs})
@@ -144,7 +153,7 @@ def stats(values):
 def collect(iteration, item):
     root = (iteration / item["path"]).resolve()
     require(root.is_relative_to(iteration), "Run path escapes iteration")
-    record = {**item, "status": "invalid", "grade": None, "total_tokens": None,
+    record = {**item, "status": "invalid", "grade": None, "quality_score": None, "total_tokens": None,
               "duration_ms": None, "errors": [], "environment": {}, "limitations": []}
     try:
         run = read(root / "run.json")
@@ -167,10 +176,17 @@ def collect(iteration, item):
         require((root / "transcript.md").is_file() or (root / "transcript.jsonl").is_file(),
                 "Completed run lacks transcript.md or transcript.jsonl")
         assertions = item["assertions"]
-        if not assertions or not (root / "grading.json").exists():
+        if not (root / "grading.json").exists():
             return record
         grading = read(root / "grading.json")
         require(isinstance(grading, dict), "grading.json must be an object")
+        if item.get("scoring") is not None:
+            if "score_results" in grading:
+                record["quality_score"] = score_results(item["scoring"], grading["score_results"])
+        else:
+            require("score_results" not in grading, "score_results requires a frozen confirmed rubric")
+        if not assertions:
+            return record
         results = grading.get("assertion_results")
         require(isinstance(results, list) and all(isinstance(r, dict) for r in results), "Invalid assertion_results")
         require([r.get("text") for r in results] == assertions, "Grading must match frozen assertions in order")
@@ -211,6 +227,10 @@ def summarize(args):
             errors.append(f"Snapshot changed or missing: {config}")
     if hashlib.sha256((iteration / "evals.json").read_bytes()).hexdigest() != manifest["evals_sha256"]:
         errors.append("Frozen evals.json changed")
+    frozen_cases = {str(c["id"]): c for c in read(iteration / "evals.json")["evals"]}
+    for item in manifest["runs"]:
+        frozen = frozen_cases.get(item["case_id"], {})
+        require(item.get("scoring") == frozen.get("scoring"), "Manifest scoring differs from frozen evals")
     records = [collect(iteration, item) for item in manifest["runs"]]
     groups = {}
     per_case = defaultdict(list)
@@ -223,6 +243,8 @@ def summarize(args):
                           "planned": len(group), "graded": len(graded),
                           "ungraded_completed": sum(r["status"] == "completed" for r in group) - len(graded),
                           "invalid_records": sum(bool(r["errors"]) for r in group),
+                          "quality_scored": sum(not r["errors"] and r["quality_score"] is not None
+                                                and r["quality_score"]["total"] is not None for r in group),
                           "passed": passed, "total": total, "pass_rate": passed / total if total else None,
                           "tokens": stats([r["total_tokens"] for r in group if r["total_tokens"] is not None]),
                           "time_seconds": stats([r["duration_ms"] / 1000 for r in group if r["duration_ms"] is not None])}
@@ -268,6 +290,24 @@ def summarize(args):
     for r in records:
         lines.append(f"- [{r['path']}]({r['path']}/run.json)：{r['status']}；"
                      f"[产物]({r['path']}/outputs/)；[评分]({r['path']}/grading.json)；[日志]({r['path']}/transcript.md)")
+        grade = r["grade"]
+        verdict = ("记录无效" if r["errors"] else "未判定" if not grade else
+                   "不通过" if grade["failed"] else "未判定" if grade["unresolved"] else "通过")
+        lines.append(f"  硬性断言：{verdict}。")
+        if r.get("scoring") is not None:
+            quality = r["quality_score"]
+            total = quality["total"] if quality and not r["errors"] else None
+            lines.append(f"  质量总分：{total:.2f}/100。" if total is not None else "  质量总分：未评分（缺测、未判定或记录无效）。")
+            if quality and not r["errors"]:
+                lines += ["", "  | 评分项 | 得分 / 5 | 权重 | 加权分 | 证据 |",
+                          "  |---|---:|---:|---:|---|"]
+                for dimension in quality["dimensions"]:
+                    value = dimension["score"] if dimension["score"] is not None else "未判定"
+                    contribution = f"{dimension['contribution']:.2f}" if dimension["contribution"] is not None else "—"
+                    escape = lambda value: str(value).replace("|", "\\|").replace("\n", " ")
+                    lines.append(f"  | {escape(dimension['id'])} | {value} | {dimension['weight_percent']}% | "
+                                 f"{contribution} | {escape(dimension['evidence'])} |")
+                lines.append("")
         if r["errors"] or r.get("error") or r["limitations"]:
             lines.append("  " + json.dumps({"errors": r["errors"], "error": r.get("error"),
                                            "limitations": r["limitations"]}, ensure_ascii=False))
