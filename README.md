@@ -4,7 +4,7 @@
 
 | 技能 | 什么时候用 | 主要交付 |
 |---|---|---|
-| [`skill-challenger`](skills/skill-challenger/SKILL.md) | 想创建新技能，但用途、输入输出或验收还不明确 | 红黄绿灯、准入状态和创建需求简报 |
+| [`skill-challenger`](skills/skill-challenger/SKILL.md) | 创建前澄清用途、检查需求描述的缺失与可补充之处 | 红黄绿灯、准入状态、具体补充建议和创建需求简报 |
 | [`skill-evals`](skills/skill-evals/SKILL.md) | 创建、自审、执行或修复技能测试 | 用例、覆盖矩阵、修改记录、实际输出与测试报告 |
 | [`skill-optimizer`](skills/skill-optimizer/SKILL.md) | 已有技能存在误触发、冗余规则、执行停顿或结构问题 | 审查结论、修改方案，以及获授权后的修改与验证 |
 
@@ -49,6 +49,8 @@ cp -R skills/skill-optimizer ~/.agents/skills/
 | 🔴 `OVERRIDDEN` | 用户明确强制继续；保留红灯与临时假设后创建 |
 
 用户已经要求创建时，通过后自动进入创建流程。只要求挑战或澄清时，只输出需求简报。
+
+除准入审核外，还会检查需求描述中遗漏或可以补充的内容，逐项说明缺口、影响、建议写法及处理方式。必须澄清的问题按原有门禁处理；可选增强即使在全绿时也可提出，但不阻断创建，未经用户采纳不纳入实现。没有实质缺口时，不为凑清单提出建议。
 
 ```text
 使用 $skill-challenger，我想创建一个整理会议纪要的技能，先帮我说清楚它应该做什么。
